@@ -129,7 +129,8 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
 # data.DV <- read.csv("PC_AA_DV_3.1.2018.csv")
 # data.DV <- read.csv("PC_AA_DV_Apr.11.2018.csv")
 # data.DV <- read.csv("PC_AA_DV_May.04.2018.csv")
-data.DV <- read.csv("PC_AA_DV_Jul.01.2018.csv")
+# data.DV <- read.csv("PC_AA_DV_Jul.01.2018.csv") 
+data.DV <- read.csv("PC_AA_DV_8.28.2018.csv", stringsAsFactors = FALSE) # added var: acq. experience
 library(MASS)
 
 ##### DV=Acquisition #####
@@ -404,7 +405,7 @@ VIF$Variables <- c("Alliance Formation", var.names.aa[1:10], "PC VC-network Cent
 cor.test(ali.12$model$company_eigen, ali.12$model$endorse.eigen)
 compile.mgmt::reg.Cor(ali.12$model)
 
-# Wald test #
+# Wald test for comparing relative importance #
 v <- vcov(ali.6)
 (c <- coef(ali.6))
 dif <- c[34] - c[35]

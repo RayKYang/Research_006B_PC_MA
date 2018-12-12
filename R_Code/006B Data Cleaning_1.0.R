@@ -1,5 +1,7 @@
+# last run: 12.10.2018
+
 # setwd("/Users/Ray_Mac/Documents/R Yang/~PhD Research Data/006Data/Data Cleaning")
-suppressMessages(lapply(c("readr","data.table","xts","tidyr","dplyr","stringr","purrr","lubridate","maxLik"), require, character.only = TRUE))
+invisible(lapply(c("readr","data.table","xts","tidyr","dplyr","stringr","purrr","lubridate","maxLik"), require, character.only = TRUE))
 
 ##### Acquisition #####
 # AQ <- read.csv("RAW_AQ_006B.csv", stringsAsFactors = FALSE)
@@ -65,25 +67,25 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
 #  write.csv(AA_rolling, "AA_rolling.csv", row.names = FALSE)
  
 ##### read in AQ_AL rolling window data #####
- AA_rolling <- read.csv("AA_rolling.csv", stringsAsFactors = FALSE) %>% dplyr::select(-c(3:8))
+ AA_rolling <- read.csv("AA_rolling.csv", stringsAsFactors = FALSE) %>% dplyr::select(-c(3:8)) 
 ### read in VC capability data (rolling window) ###
  VC_capa.rolling <- read.csv("VC_capa.rolling.csv", stringsAsFactors = FALSE)[,-2]
 ### read in VC network centrality data (the gap years are alreading padded) ###
- VC_network <- read.csv("Centrality.VCs.3Year.csv", stringsAsFactors = FALSE) %>% arrange(fund.match, year)
+ VC_network <- read.csv("Centrality.VCs.5Year.csv", stringsAsFactors = FALSE) %>% arrange(fund.match, year) # 12.10.2018 [change ...3Year.csv to ...5Year.csv]
 ### read in PC network centrality data (the gap years are alreading padded) ###
- PC_network <- read.csv("Centrality.PCs.3Year.csv", stringsAsFactors = FALSE) %>% dplyr::select(-c(2))
+ PC_network <- read.csv("Centrality.PCs.5Year.csv", stringsAsFactors = FALSE) %>% dplyr::select(-c(2)) # 12.10.2018 [change ...3Year.csv to ...5Year.csv]
     
  ### company_year row data w/ round ###
- rfmi_repu_social <- fread("rfmi_repu_social.3Year.csv") ## unit obs = company-VC-year 
+ rfmi_repu_social <- fread("rfmi_repu_social.5Year.csv") ## unit obs = company-VC-year # 12.10.2018 [change ...3Year.csv to ...5Year.csv]
  # rfmi_repu_social <- fread("rfmi_repu_social.18April.csv") # this contains [VC's success rates by distinct PCs]
  rfmi_repu_social$date <- lubridate::mdy(rfmi_repu_social$date)
  rfmi_repu_social <- arrange(rfmi_repu_social, company_name, year) %>% group_by(company_name) %>%
-   mutate(round=dense_rank(year)) %>% ## add round number ##
-   dplyr::select(c(1,2,4,7,8,16,19,20,36)) %>% as.data.frame() 
+   mutate(round=dense_rank(year)) ## add round number ##
  ### pad data suggested by Jun Xia ###
  rfmi.split.by.PC <- split(rfmi_repu_social, rfmi_repu_social$company_name)
- # test <- rfmi.split.by.PC[[44]]
- pad.data    <- function(df, wide=2){ #!!# THIS Function DETERMINES THE DIFFERENCE from 006A Cleaning # wide: N year rolling
+ # test 
+ # df <- rfmi.split.by.PC[[44]]
+ pad.data    <- function(df, wide=2){ # wide: N-1 year rolling # #!!# THIS Function DETERMINES THE DIFFERENCE from 006A Cleaning 
    df <- arrange(df, company_name, year, fund.match)
    al.year <- sort(unique(df$year)) # al.year <- c(1992:1996, 2002:2003, 2007:2008)
    gap <- al.year[-1] - al.year[-length(al.year)]
@@ -153,8 +155,17 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
      summarise(cum_n.firm = last(cum_unique_firms))
    result <- merge(df, n.firms.by.round, by="round")
    return(result)}
- rfvc.file <- do.call(rbind,map(split(rfmi_repu_social,rfmi_repu_social$company_name),add.cum.n.firms))
- ## add cumulative and non-cumulative amt, max.status, min.constraint, i_exit_success, m_exit_success ## 
+ rfvc.list <- map(split(rfmi_repu_social,rfmi_repu_social$company_name), safely(add.cum.n.firms))
+ bad <- which(unlist(map(rfvc.list, function(x){!is_null(x$error)})))
+ rfvc.file <- do.call(rbind, map(rfvc.list, function(x)(x$result)))
+ rm(rfvc.list)
+ 
+ rfvc.file$eigen <- rfvc.file$eigen.x
+ rfvc.file$constraint <- rfvc.file$constraint.x
+ rfvc.file$exit_success <- rfvc.file$exit_success.x
+ rfvc.file$i_exit_success <- rfvc.file$i_exit_success.x
+ rfvc.file$m_exit_success <- rfvc.file$m_exit_success.x
+ ## add cumulative and non-cumulative amt, max.status, min.constraint, i_exit_success, m_exit_success ## very slow
  add.cnasim <- function(test){
    data <- test[,c("round","company_name","fund.match","amt_000","eigen","constraint","exit_success","i_exit_success","m_exit_success")]
    data.cum <- arrange(data,round) %>% 
@@ -173,15 +184,14 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
 # write.csv(rfvc.file,"rfvc.file.01.31.18.csv", row.names = FALSE)
  # (test <- filter(rfvc.file, company_name=="@Road, Inc."))
  # (test <- filter(rfvc.file, company_name==unique(rfmi_repu_social.cvc$company_name[299])))
- setwd("/Volumes/RESEARCH_HD/006/network_data")
- rfvc.file <- read.csv("rfvc.file.01.31.18.csv")
+ # setwd("/Volumes/RESEARCH_HD/006/network_data")
+ # rfvc.file <- read.csv("rfvc.file.01.31.18.csv")
  ### aggregate company-VC-year(round) to company-round data ###
- PC_round_008 <- rfvc.file %>% dplyr::select(-c(5,7:9,13:19)) %>% group_by(company_name, round) %>% filter(row_number()==n())
+ PC_round_008 <- rfvc.file %>% group_by(company_name, round) %>% filter(row_number()==n())
    ifelse(length(unique(PC_round_008$company_name))==length(unique(rfvc.file$company_name)) & 
             sum(duplicated(PC_round_008[,c("round","company_name")]))==0,"Looks Good","double-check")
  
  ## Add information to PC_round_008 ##
- setwd("/Users/Ray_Mac/Documents/R Yang/~PhD Research Data/006Data/Data Cleaning")
  ## market PE ##
  SnP_PE <- read.csv("S&P_PE.csv",header = FALSE)
  names(SnP_PE) <- c("year","Market_PE")
@@ -212,8 +222,7 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
  dup.r <- which(duplicated(PC_round_008[,c("cusip", "round")]) | duplicated(PC_round_008[,c("cusip", "round")], fromLast = TRUE))
  # PC_round_008[dup.r,][,1:8]
  PC_round_008 <- PC_round_008[-dup.r,]
- setwd("/Volumes/RESEARCH_HD/006/network_data")
- 
+
 # construct the data IV=AA_roling #
  IV_data.1 <- merge(PC_round_008, AA_rolling, by.x=c("cusip","year"), by.y=c("CusipAup","year"), all.x = TRUE)
  IV_data.1[,36:41][is.na(IV_data.1[,36:41])] <- 0
@@ -236,10 +245,11 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
  PC_AA_IV <- do.call(rbind, purrr::map(IV_data.1_splitted, prep_lag_IV)) ## with lagged IV
 
 # construct the data DV=AA_roling # use network to predict the next year's (the nearest future) acquisitions and alliances only #
- DVdata_IVs <- dplyr::select(PC_round_008, -c(6:8)) 
+ DVdata_IVs <- PC_round_008
  DVdata_IVs$lead.year <- DVdata_IVs$year+1
  PC_AA_DV <- merge(DVdata_IVs, AQ_AL_Count, by.x = c("cusip", "lead.year"), by.y = c("CusipAup", "year"), all.x = TRUE)
- PC_AA_DV[,34:39][is.na(PC_AA_DV[,34:39])] <- 0
+ DV.col <- which(names(PC_AA_DV) %in% names(AQ_AL_Count)[3:8])
+ PC_AA_DV[,DV.col][is.na(PC_AA_DV[,DV.col])] <- 0
  sum(duplicated(PC_AA_DV[,c("cusip", "year")]))
  
  ### final check ###
@@ -273,6 +283,7 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
     PC_AA_DV$amt.sum <- PC_AA_DV$amt.sum /1000
     
    # write.csv(PC_AA_DV, "PC_AA_DV_1.31.2018.csv", row.names = FALSE)
+   # write.csv(PC_AA_DV, "PC_AA_DV_12.10.2018.csv", row.names = FALSE)
    # write.csv(PC_AA_IV, "PC_AA_IV_1.31.2018.csv", row.names = FALSE)
    
    length(unique(AQ_AL_Count$CusipAup))
@@ -301,11 +312,26 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
   PC_AA_DV <- purrr::reduce(list(PC_AA_DV, centrality_alli_nwk, AA_rolling), dplyr::left_join, by=c("cusipAup", "lead.year"))
   PC_AA_DV[is.na(PC_AA_DV)] <- 0
   # write.csv(PC_AA_DV, "PC_AA_DV_2.9.2018.csv", row.names = FALSE)
+  # write.csv(PC_AA_DV, "PC_AA_DV_12.10.2018.csv", row.names = FALSE)
 
-### add dependence variables ### 4.11.2018 ###
+### add Acquisition Experience to PC_AA_DV
+  setwd("/Volumes/RESEARCH_HD/006/network_data")
+  AA_rolling <- read.csv("AA_rolling.csv", stringsAsFactors = FALSE) %>% dplyr::select(-c(3:8))
+  AA_rolling <- AA_rolling[, c(1,2,3)]
+  AA_rolling$lead.year <- AA_rolling$year + 1
+  AA_rolling <- AA_rolling[, c(1,4,3)]
+  names(AA_rolling)[3] <- c("acquisition_experience")
+  # data.DV <- read.csv("PC_AA_DV_Jul.01.2018.csv")
+  data.DV <- read.csv("PC_AA_DV_12.10.2018.csv")
+  data.DV_acq.exp <- merge(data.DV, AA_rolling, by.x = c("cusipAup", "year"), by.y = c("CusipAup", "lead.year"), all.x = TRUE)
+  data.DV_acq.exp[is.na(data.DV_acq.exp)] <- 0
+  # write.csv(data.DV_acq.exp, "PC_AA_DV_8.28.2018.csv", row.names = FALSE)
+  write.csv(data.DV_acq.exp, "PC_AA_DV_12.10.2018.csv", row.names = FALSE)
+  
+### add dependence variables
   ### (lead) VC dependence on PC ### relative standing ###
   ### add relative standing ###
-  rfmi_repu_social <- fread("rfmi_repu_social.3Year.csv") ## unit obs = company-VC-year 
+  rfmi_repu_social <- fread("rfmi_repu_social.5Year.csv") # 12.10.2018 changed 3Year to 5Year.csv # unit obs = company-VC-year 
   PC.standig.in.VC.folio <- arrange(rfmi_repu_social, fund.match, year) %>% 
     group_by(fund.match, year) %>% 
     mutate(relative.standing = amt_000/sum(amt_000)) %>% 
@@ -320,7 +346,7 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
   names(PC.standig.in.VC.folio)[5] <- "dependence_lead_VC_on_PC"
   DEP_VC_on_PC <- PC.standig.in.VC.folio %>% dplyr::select(-fund.match, -amt_000)
   ### add All VC dependence on PC ###
-  rfmi_repu_social <- fread("rfmi_repu_social.3Year.csv") ## unit obs = company-VC-year 
+  rfmi_repu_social <- fread("rfmi_repu_social.5Year.csv") # 12.10.2018 changed 3Year to 5Year.csv # unit obs = company-VC-year 
   PC.standig.in.ALL_VC <- arrange(rfmi_repu_social, fund.match, year) %>% 
     group_by(fund.match, year) %>% 
     mutate(fund_year_total_amt = sum(amt_000)) %>% 
@@ -336,7 +362,7 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
   DEP_ALL_VC_on_PC <- PC.standig.in.ALL_VC %>% dplyr::select(-fund.match, -amt_000, -fund_year_total_amt)
   ### PC dependence on VC ### 
   ## HHI ###
-  rfmi_repu_social <- fread("rfmi_repu_social.3Year.csv") ## unit obs = company-VC-year 
+  rfmi_repu_social <- fread("rfmi_repu_social.5Year.csv") # 12.10.2018 changed 3Year to 5Year.csv # unit obs = company-VC-year 
   add.HHI <- function(df){
     # df <- split(rfmi_repu_social.cvc,rfmi_repu_social.cvc$company_name)[[2]]
     result <- data.frame(df[,c("year","fund.match","fund_type","amt_000")])
@@ -363,7 +389,7 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
   add.cum.amt <- function(df){
     # split <- split(rfmi_repu_social,rfmi_repu_social$company_name) # for testing
     # df <- split[[22]] # for testing
-    result <- data.frame(df[,c("year","fund.match","amt_000")]) %>% arrange(year)
+    result <- data.frame(df[, c("year","fund.match","amt_000")]) %>% arrange(year)
     result[is.na(result)] <- 0
     result <- mutate(result, cum_max_prop_amt = cummax(amt_000)/cumsum(amt_000)) %>% 
               group_by(year) %>% 
@@ -379,7 +405,8 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
   PC_AA_DV <- reduce(list(PC_AA_DV, DEP_VC_on_PC, DEP_ALL_VC_on_PC, DEP_PC_on_VC), left_join, by=c("company_name","year"))
   PC_AA_DV[is.na(PC_AA_DV)] <- 0
  # write.csv(PC_AA_DV, "PC_AA_DV_May.04.2018.csv", row.names = FALSE)
- 
+ # write.csv(PC_AA_DV, "PC_AA_DV_12.10.2018.csv", row.names = FALSE)
+  
 # # 2018.03.01 ### update Alliance Network Centrality to PC_AA_DV ###
 #   setwd("/Volumes/RESEARCH_HD/006/network_data")
 #   centrality_alli_nwk <- read.csv("centrality_alli_all_nwk.csv")
@@ -416,4 +443,16 @@ setwd("/Volumes/RESEARCH_HD/006/network_data")
   data.DV$alliance_eigen[is.na(data.DV$alliance_eigen)] <- 0
   data.DV$alliance_constraint[is.na(data.DV$alliance_constraint)] <- 1.125
   # write.csv(data.DV, "PC_AA_DV_Jul.01.2018.csv", row.names = FALSE)  
+  
+  # # 9.17.2018 add only startup_evolved alliance centrality to PC_AA_DV_8.28.2018.csv, got insig. betas.
+  # setwd("/Volumes/RESEARCH_HD/006/network_data")
+  # data.DV <- read.csv("PC_AA_DV_8.28.2018.csv", stringsAsFactors = FALSE)
+  # 
+  # centrality_alli_nwk <- read.csv("centrality_alli_nwk.csv")
+  # centrality_alli_nwk$lead.year <- centrality_alli_nwk$year + 1
+  # centrality_alli_nwk <- centrality_alli_nwk[,2:5]
+  # names(centrality_alli_nwk)[2:3] <- paste0("startup_alliance_", names(centrality_alli_nwk)[2:3])
+  # 
+  # data.DV <- dplyr::left_join(data.DV, centrality_alli_nwk, by=c("cusipAup", "lead.year"))
+  
   

@@ -1,10 +1,13 @@
+# last run date: 10.29.2018
+
 ################# # construct status # with the matched round data (rfmi comes from round_firm_MnA_IPO)
-suppressMessages(lapply(c("readr","data.table","xts","tidyr","dplyr","stringr","purrr","lubridate","maxLik"), require, character.only = TRUE))
+regrrr::load.pkgs(c("readr","data.table","xts","tidyr","dplyr","stringr","purrr","lubridate","maxLik"))
 setwd("/Volumes/RESEARCH_HD/006/network_data")
 rfmi <- read.csv("rfmi.csv")
 # step 1: add a col "nt.yr" to mark in which years a VC is in a network (like a snapshot)
-all.year    <- function(df, wide=3){ #!!# THIS Function DETERMINES N (wide = N) year rolling
-    al.year <- unique(df$year) # al.year <- c(1992:1996, 2002:2003, 2007:2008)
+all.year    <- function(df, wide=5){ #!!# THIS Function DETERMINES N (wide = N) year rolling, i.e. how large the gap is
+  # al.year <- c(1992:1996, 2002:2003, 2007:2008)
+    al.year <- unique(df$year) 
         gap <- al.year[-1] - al.year[-length(al.year)]
       gap.w <- which(gap>1)
       ends  <- al.year[gap.w]
@@ -20,7 +23,7 @@ network.yr <- function(df){
   return(yr.list)
 }
 # ## df for testing step 1
-# df <- select(rfmi,company_name,fund.match,year) %>%
+# df <- select(rfmi,company_name, fund.match,year) %>%
 #   filter( company_name=="@Road, Inc.") %>%
 #   slice( -(7:10) )
 
@@ -46,7 +49,7 @@ network.in.a.year <- function(df, network.year) {
 # step 3: function only: find status in that year
 find.status <- function(network.df, which.year, node="fund.match", link="company_name") {
   df <- data.frame(network.df[node], network.df[link])
-  df[] <- lapply(df, as.character)
+  df[] <- lapply(df, as.character) # convert all cols into characters
   M <- table(df) %>% as.matrix() %>% tcrossprod()
   diag(M) <- 1
   g <- igraph::graph_from_adjacency_matrix(M, weighted=NULL, mode = "undirected") %>% igraph::simplify()
@@ -73,7 +76,8 @@ get.whole <- function(rfmi) {
 start <- Sys.time()
 status.df.VCs <- get.whole(rfmi) %>% filter(year!=0) # slow to run: 11.328 mins
 Sys.time() - start
-write.csv(status.df.VCs, "Centrality.VCs.3Year.csv", row.names=FALSE) ### VC network positions by year
+# write.csv(status.df.VCs, "Centrality.VCs.3Year.csv", row.names=FALSE) ### VC network positions by year
+write.csv(status.df.VCs, "Centrality.VCs.5Year.csv", row.names=FALSE) ### VC network positions by year
 
 ## one more step after "finally": get the status for {companies}, change the args of find.status(... node=company )
 get.whole <- function(df) {
@@ -89,13 +93,14 @@ status.df.company <- get.whole(rfmi) %>% filter(year!=0) # slow to run: 15.164 m
 colnames(status.df.company)[2:5] <- c("company_power","company_eigen","company_constraint","company_name")
 Sys.time() - start
 status.df.company <- arrange(status.df.company, company_name)
-write.csv(status.df.company, "Centrality.PCs.3Year.csv", row.names=FALSE) ### PCs' network positions by year
+# write.csv(status.df.company, "Centrality.PCs.3Year.csv", row.names=FALSE) ### PCs' network positions by year
+write.csv(status.df.company, "Centrality.PCs.5Year.csv", row.names=FALSE) ### PCs' network positions by year
 
-### update rfmi_repu_social
-rolling.window <- 3
-rfmi_repu_social <- inner_join(rfmi, status.df.VCs, by=c("fund.match","year")) %>%
-  select(-nt.yr) %>%
-  left_join(status.df.company, by=c("company_name","year")) 
-if(nrow(rfmi)==nrow(rfmi_repu_social)){print("looks good so far!")}
-class(rfmi_repu_social$amt_000) <- "numeric"
-write.csv(rfmi_repu_social, paste0("rfmi_repu_social.",rolling.window,"Year.csv"), row.names = FALSE)
+# ### update rfmi_repu_social
+# rolling.window <- 3
+# rfmi_repu_social <- inner_join(rfmi, status.df.VCs, by=c("fund.match","year")) %>%
+#   select(-nt.yr) %>%
+#   left_join(status.df.company, by=c("company_name","year")) 
+# if(nrow(rfmi)==nrow(rfmi_repu_social)){print("looks good so far!")}
+# class(rfmi_repu_social$amt_000) <- "numeric"
+# write.csv(rfmi_repu_social, paste0("rfmi_repu_social.",rolling.window,"Year.csv"), row.names = FALSE)
