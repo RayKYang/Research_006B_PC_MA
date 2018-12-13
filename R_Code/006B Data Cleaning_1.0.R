@@ -1,7 +1,7 @@
 # last run: 12.10.2018
 
 # setwd("/Users/Ray_Mac/Documents/R Yang/~PhD Research Data/006Data/Data Cleaning")
-invisible(lapply(c("readr","data.table","xts","tidyr","dplyr","stringr","purrr","lubridate","maxLik"), require, character.only = TRUE))
+regrrr::load.pkgs(c("readr","data.table","xts","tidyr","dplyr","stringr","purrr","lubridate","maxLik"))
 
 ##### Acquisition #####
 # AQ <- read.csv("RAW_AQ_006B.csv", stringsAsFactors = FALSE)
@@ -40,9 +40,11 @@ invisible(lapply(c("readr","data.table","xts","tidyr","dplyr","stringr","purrr",
 # AQ_AL_Count[is.na(AQ_AL_Count)] <- 0
 # write.csv(AQ_AL_Count,"AQ_AL_Count.csv",row.names = FALSE)
 ##################### Done: counting acq. and ali. Go to RESEARCH_HD to read in ##############################
+
 setwd("/Volumes/RESEARCH_HD/006/network_data")
  AQ_AL_Count <- read.csv("AQ_AL_Count.csv") ## read directly ## [simple count by year]
  AQ_AL_Count <- arrange(AQ_AL_Count,CusipAup,year)
+ 
 # ##### contruct AQ_AL rolling window data #####
 #  # fuction for one data.block ##
 #  prep.AA_rolling <- function(df){
