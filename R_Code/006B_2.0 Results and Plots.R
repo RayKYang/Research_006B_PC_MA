@@ -1,6 +1,6 @@
 setwd("/Volumes/RESEARCH_HD/006/network_data")
-data.DV <- read.csv("PC_AA_DV_9.25.2018.csv", stringsAsFactors = FALSE) # the lastest version prior to 12.10
-data.DV <- read.csv("PC_AA_DV_12.10.2018.csv", stringsAsFactors = FALSE)
+data.DV <- read.csv("PC_AA_DV_9.25.2018.csv", stringsAsFactors = FALSE) # the lastest version prior to 12.10 （3-yr rolling on VC centrality）
+data.DV <- read.csv("PC_AA_DV_12.10.2018.csv", stringsAsFactors = FALSE) # (5-yr rolling on VC centrality)
 
 regrrr::load.pkgs(c("dplyr", "pscl", "Formula", "lmtest", "regrrr", "multiwayvcov", "sandwich"))
 
