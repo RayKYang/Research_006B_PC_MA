@@ -1,6 +1,6 @@
 setwd("/Volumes/RESEARCH_HD/006/network_data")
-data.DV <- read.csv("PC_AA_DV_9.25.2018.csv", stringsAsFactors = FALSE) # the lastest version prior to 12.10 （3-yr rolling on VC centrality）
-data.DV <- read.csv("PC_AA_DV_12.10.2018.csv", stringsAsFactors = FALSE) # (5-yr rolling on VC centrality)
+# data.DV <- read.csv("PC_AA_DV_9.25.2018.csv", stringsAsFactors = FALSE) # the lastest version prior to 12.10 （3-yr rolling on VC centrality）
+data.DV <- read.csv("PC_AA_DV_12.15.2018.csv", stringsAsFactors = FALSE) # (5-yr rolling on VC centrality)
 
 regrrr::load.pkgs(c("dplyr", "pscl", "Formula", "lmtest", "regrrr", "multiwayvcov", "sandwich"))
 
@@ -153,7 +153,7 @@ aq.3_z <- change.var.name(aq.3_z)
 ali.count <- rbind(regrrr::reg.combine(al.1_c, al.2_c, al.2._c, al.3_c), 
                    regrrr::mod.compare(aqi.0, aqi.1, aqi.2, aqi.all, likelihood.only = TRUE))
 ali.count[seq(3,nrow(ali.count)-1,2),1] <- var.names.aa
-print("DV = Future Number of Alliance")
+print("DV = Future Number of Alliances")
 knitr::kable(ali.count)
 
 ali.table <- rbind(regrrr::reg.combine(al.1_c, al.1_z, al.2_c, al.2_z, al.3_c, al.3_z), 
@@ -222,6 +222,6 @@ p8 <- regrrr::reg.gg.from.model(reg.result = plot_m2, df = data.DV, model.for.pr
                                 main1.r = 11, mdrt.r = 13, mod.n.sd = 1,
                                 xlab = "Alliance Experience", ylab = "# Acquisitions", moderator.lab = "Alliance Status")
 
-margin = theme(plot.margin = unit(c(0.35,0.35,0.35,0.35,0.35,0.35,0.35,0.35), "cm")) 
+margin = ggplot2::theme(plot.margin = ggplot2::unit(c(0.35,0.35,0.35,0.35,0.35,0.35,0.35,0.35), "cm")) 
 gridExtra::grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, ncol = 2, grobs = lapply(list(p1, p2, p3, p4, p5, p6, p7, p8), "+", margin))
 
