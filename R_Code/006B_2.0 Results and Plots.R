@@ -72,7 +72,7 @@ aqi.0 <- zeroinfl(n.ali.overall ~ cum_n.firm + round + dependence_ALL_VC_on_PC +
                   data = data.DV) # data.DV[-is,]
 aqi.1 <- update(aqi.0, .~. + acquisition_experience + alliance_experience | . + acquisition_experience + alliance_experience)
 aqi.2 <- update(aqi.1, .~. + status.cum + alliance_eigen | . )
-aqi.all <- update(aqi.1, .~. + status.cum * (acquisition_experience + alliance_experience) + alliance_eigen * (acquisition_experience + alliance_experience) | 
+aqi.all <- update(aqi.1, .~. + status.cum * (acquisition_experience + alliance_experience) | # + alliance_eigen * (acquisition_experience + alliance_experience)
                     . )
 
 ##### Acquisition Model #####
@@ -83,7 +83,7 @@ aqi.0_Eq <- zeroinfl(n.acq.ASSETS ~ cum_n.firm + round + dependence_ALL_VC_on_PC
                      data = data.DV) # data.DV[-is,]
 aqi.1_Eq <- update(aqi.0_Eq, .~. + acquisition_experience + alliance_experience | . + acquisition_experience + alliance_experience)
 aqi.2_Eq <- update(aqi.1_Eq, .~. + status.cum + alliance_eigen | . )
-aqi.all_Eq <- update(aqi.1_Eq, .~. + status.cum * (acquisition_experience + alliance_experience) + alliance_eigen * (acquisition_experience + alliance_experience) | 
+aqi.all_Eq <- update(aqi.1_Eq, .~. + status.cum * (acquisition_experience + alliance_experience) | # + alliance_eigen * (acquisition_experience + alliance_experience)
                        . )
 
 # vuong test
@@ -96,8 +96,9 @@ var.names.aa <- c("Total # VCs Participated", "Total # Rounds Received", "VC Dep
                   "Total Fund Raised (MM)", "VC Investment Capability", "PC Age",  
                   "Acquisition Experience", "Alliance Experience",
                   "VC Status in VC Network", "PC Status in Alliance Network",       
-                  "VC Status x Acquisition Experience", "VC Status x Alliance Experience",
-                  "PC Status x Acquisition Experience", "PC Status x Alliance Experience")
+                  "VC Status x Acquisition Experience", "VC Status x Alliance Experience"
+                  # "PC Status x Acquisition Experience", "PC Status x Alliance Experience"
+                  )
 X_names <- var.names.aa[!stringr::str_detect(var.names.aa, pattern = " x ")]
 c.table <- regrrr::reg.Cor.Table(model_df = aqi.all$model, model_df_to_combine = aqi.all_Eq$model, 
                       all.var.names = c("Number of Alliances", "Number of Acquisitions", X_names), d = 2)
